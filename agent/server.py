@@ -28,7 +28,7 @@ APPS = [
     {"id": "market",   "name": "GrossMarket",        "domain": "market.triallumii.online",   "match": ["gtjsfiqkffmr6uw9bsyunnvy"]},
     {"id": "rotaplan", "name": "RotaPlan",           "domain": "rotaplan.triallumii.online", "match": ["5bxjwsr156k3farugk3rkv0b"]},
     {"id": "vitrin",   "name": "TARCAN",             "domain": "vitrin.triallumii.online",   "match": ["teszcecvuwghaif17ry8cieb"]},
-    {"id": "supabase", "name": "Supabase (DersKoçu)","domain": "supabase.triallumii.online", "match": ["supabase-"]},
+    {"id": "supabase", "name": "Supabase (DersKoçu)","domain": "supabase.triallumii.online", "match": ["supabase-"], "path": "/auth/v1/health", "ok": [200, 401]},
     {"id": "shift",    "name": "ShiftTracker",       "domain": "shifttracker.online",        "match": ["z77nzo80cc1uzdgyd1lvcloq", "uz1amejxymtdldwqvlej8emv", "l31sovixufjbrdoqkypgbbub"]},
 ]
 GROUPS = [
@@ -184,9 +184,9 @@ def docker_df():
 
 # ---------- probes ----------
 def probe(app):
-    url = f"https://{app['domain']}/"
+    url = f"https://{app['domain']}{app.get('path', '/')}"
     t0 = time.time()
-    res = {"id": app["id"]}
+    res = {"id": app["id"], "ok_codes": app.get("ok", [200])}
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "lumii-status/1.0"})
         with urllib.request.urlopen(req, timeout=10) as r:
@@ -217,8 +217,9 @@ def apps_probe():
     with ThreadPoolExecutor(max_workers=6) as ex:
         probes = list(ex.map(probe, APPS))
         certs = list(ex.map(lambda a: cert_days(a["domain"]), APPS))
-    return [{"id": a["id"], "name": a["name"], "domain": a["domain"], "http": p.get("http"), "ms": p["ms"],
-             "http_err": p.get("err"), "cert": c} for a, p, c in zip(APPS, probes, certs)]
+    return [{"id": a["id"], "name": a["name"], "domain": a["domain"], "path": a.get("path", "/"), "http": p.get("http"),
+             "ok": p.get("http") in p["ok_codes"], "ms": p["ms"], "http_err": p.get("err"), "cert": c}
+            for a, p, c in zip(APPS, probes, certs)]
 
 
 # ---------- state / loops ----------

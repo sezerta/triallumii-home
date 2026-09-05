@@ -129,6 +129,7 @@
       <li><code>Konteyner CPU %</code> = Δcpu_usage / Δsystem_usage × çekirdek × 100 — Docker stats API. Toplam 8 çekirdek için üst sınır %800.</li>
       <li><code>Konteyner RAM</code> = memory_stats.usage − inactive_file — <code>docker stats</code> ile aynı.</li>
       <li><code>Yük</code> = 1/5/15 dakikalık ortalama; çekirdek sayısını (8) aşarsa kuyruklanma var.</li>
+      <li>Supabase probu <code>/auth/v1/health</code> yoluna gider; anahtar istemediği için 401 de "erişilebilir" sayılır.</li>
       <li>Eşikler: disk ≥%80 uyarı, ≥%90 kritik · RAM ≥%85 uyarı · takas ≥%60 uyarı · CPU ≥%90 uyarı · sertifika ≤14 gün uyarı, ≤5 gün kritik · HTTP ≠ 200 kritik · konteyner çalışmıyor/sağlıksız kritik.</li>
       <li>Ajan: stdlib Python, Docker soketi salt-okunur, host <code>/proc</code> ve kök salt-okunur bağlı. Yazma yetkisi yok.</li>
     </ul>
@@ -188,7 +189,7 @@ function render(d){
   }
   cts.filter(c=>c.state!=="running").forEach(c=>al.push(["bad",`Konteyner çalışmıyor: ${c.name} (${c.status})`]));
   cts.filter(c=>c.health==="unhealthy").forEach(c=>al.push(["bad",`Konteyner sağlıksız: ${c.name}`]));
-  apps.forEach(a=>{ if(a.http!==200) al.push(["bad",`${a.name}: HTTP ${a.http??"yanıt yok"} (${a.domain}) ${a.http_err||""}`]);
+  apps.forEach(a=>{ if(!a.ok) al.push(["bad",`${a.name}: HTTP ${a.http??"yanıt yok"} (${a.domain}) ${a.http_err||""}`]);
     const dd=a.cert?.days; if(dd!=null && dd<=5) al.push(["bad",`${a.domain} sertifikası ${dd} gün içinde bitiyor`]); else if(dd!=null && dd<=14) al.push(["warn",`${a.domain} sertifikası ${dd} gün içinde bitiyor`]); else if(dd==null && a.cert) al.push(["warn",`${a.domain} sertifikası okunamadı: ${a.cert.err||""}`]); });
   Object.entries(d.errors||{}).forEach(([k,v])=>al.push(["warn",`Ajan hatası (${k}): ${v}`]));
   $("#alerts").innerHTML = al.length ? al.map(([c,t])=>`<div class="alert ${c}"><i></i><span>${esc(t)}</span></div>`).join("") : `<div class="alert ok"><i></i><span>Her şey yolunda: tüm konteynerler çalışıyor, tüm alan adları 200 döndü, sertifikalar geçerli.</span></div>`;
@@ -198,9 +199,9 @@ function render(d){
   $("#apps tbody").innerHTML = apps.map(a=>{
     const cs = byApp[a.id]||[], cpu = cs.reduce((s,c)=>s+(c.cpu_pct||0),0), mem = cs.reduce((s,c)=>s+(c.mem||0),0);
     const bad = cs.filter(c=>c.state!=="running"||c.health==="unhealthy").length;
-    const hl = a.http===200?"ok":"bad", dd = a.cert?.days, cl = dd==null?"warn":dd<=5?"bad":dd<=14?"warn":"ok";
-    return `<tr><td><span class="dot ${bad||a.http!==200?"bad":"ok"}"></span>${esc(a.name)}</td><td><a class="mono muted" href="https://${a.domain}" target="_blank" rel="noopener">${a.domain}</a></td>
-      <td><span class="pill ${hl}">${a.http??"yok"}</span></td><td class="num">${a.ms} ms</td>
+    const hl = a.ok?"ok":"bad", dd = a.cert?.days, cl = dd==null?"warn":dd<=5?"bad":dd<=14?"warn":"ok";
+    return `<tr><td><span class="dot ${bad||!a.ok?"bad":"ok"}"></span>${esc(a.name)}</td><td><a class="mono muted" href="https://${a.domain}" target="_blank" rel="noopener">${a.domain}</a></td>
+      <td><span class="pill ${hl}" title="${esc(a.path||"/")}">${a.http??"yok"}</span></td><td class="num">${a.ms} ms</td>
       <td class="num"><span class="pill ${cl}">${dd==null?"?":dd.toFixed(0)+" gün"}</span></td>
       <td>${cs.length?`${cs.length-bad}/${cs.length} sağlıklı`:'<span class="muted">–</span>'}</td>
       <td class="num">${cs.length?cpu.toFixed(1)+" %":"–"}</td><td class="num">${cs.length?fmtB(mem):"–"}</td></tr>`;
