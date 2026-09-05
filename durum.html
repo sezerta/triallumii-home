@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Sunucu paneli — Lumii</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1020'/%3E%3Cpath d='M12 40l12-14 10 10 8-18 10 22' fill='none' stroke='%2334d399' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0b1020;--card:#121a2e;--card2:#172038;--line:#223052;--fg:#e8edf7;--muted:#96a3c0;--dim:#5f6d8c;
+        --accent:#7dd3fc;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--radius:16px}
+  *{box-sizing:border-box}
+  body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--fg);font-family:Manrope,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.45;font-size:14px}
+  a{color:inherit;text-decoration:none}
+  .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+  header{padding:20px 0 12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
+  .brand .mark{width:32px;height:32px;border-radius:9px;background:#0f172a;border:1px solid var(--line);display:grid;place-items:center}
+  .brand small{display:block;font-weight:500;font-size:11px;color:var(--dim);letter-spacing:.04em}
+  .tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+  .btn{border:1px solid var(--line);background:rgba(18,26,46,.8);color:var(--fg);padding:7px 12px;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .btn:hover{border-color:#33466f}
+  .btn[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .stamp{color:var(--dim)}
+  .stamp b{color:var(--fg);font-weight:600}
+
+  .alerts{margin:6px 0 16px;display:flex;flex-direction:column;gap:6px}
+  .alert{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:12px;border:1px solid;font-size:13px}
+  .alert.bad{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08);color:#fecaca}
+  .alert.warn{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:#fde68a}
+  .alert.ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.07);color:#a7f3d0}
+  .alert i{width:8px;height:8px;border-radius:50%;background:currentColor;margin-top:6px;flex:none}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .tile{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+  .tile .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .tile .v{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px;line-height:1.1}
+  .tile .v small{font-size:13px;color:var(--muted);font-weight:600;margin-left:2px}
+  .tile .s{font-size:12px;color:var(--muted)}
+  .tile .bar{height:5px;border-radius:3px;background:#0a0f1c;margin-top:10px;overflow:hidden}
+  .tile .bar b{display:block;height:100%;border-radius:3px;background:var(--ok);transition:width .4s}
+  .tile[data-level="warn"] .bar b{background:var(--warn)} .tile[data-level="bad"] .bar b{background:var(--bad)}
+  .tile canvas{position:absolute;right:0;bottom:0;width:100%;height:36px;opacity:.5;pointer-events:none}
+
+  section{margin-bottom:22px}
+  .sec{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .sec h2{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .sec .note{font-size:12px;color:var(--dim)}
+  .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:rgba(18,26,46,.6)}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+  th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;background:rgba(10,15,28,.6);position:sticky;top:0;cursor:pointer;user-select:none}
+  th[data-dir]:after{content:" ↕";opacity:.5} th[data-dir="asc"]:after{content:" ↑";opacity:1} th[data-dir="desc"]:after{content:" ↓";opacity:1}
+  tr:last-child td{border-bottom:0}
+  td.num{text-align:right;font-family:"JetBrains Mono",monospace;font-size:12.5px}
+  th.num{text-align:right}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;background:var(--dim)}
+  .dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.15)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(248,113,113,.15)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--line);color:var(--muted)}
+  .pill.ok{color:var(--ok);border-color:rgba(52,211,153,.35)} .pill.warn{color:var(--warn);border-color:rgba(251,191,36,.35)} .pill.bad{color:var(--bad);border-color:rgba(248,113,113,.35)}
+  .grp td{background:rgba(10,15,28,.5);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+  .muted{color:var(--dim)}
+  input.f{border:1px solid var(--line);background:#0a0f1c;color:var(--fg);padding:7px 10px;border-radius:9px;font:inherit;font-size:12.5px;min-width:200px}
+  .mini{height:5px;width:70px;border-radius:3px;background:#0a0f1c;display:inline-block;vertical-align:middle;margin-left:8px;overflow:hidden}
+  .mini b{display:block;height:100%;background:var(--accent)}
+
+  .df{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .df .tile .v{font-size:20px}
+  details{border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;background:rgba(18,26,46,.5);color:var(--muted);font-size:13px}
+  summary{cursor:pointer;font-weight:700;color:var(--fg)}
+  details code{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--fg);background:#0a0f1c;border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+  details ul{margin:8px 0 0;padding-left:18px} details li{margin:4px 0}
+  footer{padding:18px 0 36px;color:var(--dim);font-size:12px;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+  .err{color:var(--bad)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="/">
+    <span class="mark" aria-hidden="true"><svg viewBox="0 0 64 64" width="18" height="18" fill="none"><path d="M12 40l12-14 10 10 8-18 10 22" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <span>Sunucu paneli<small class="mono" id="hostname">netcup-vps · 159.195.199.119</small></span>
+  </a>
+  <div class="tools">
+    <span class="stamp">Son veri: <b id="stamp">–</b></span>
+    <button class="btn" id="auto" aria-pressed="true">Otomatik yenile 15 sn</button>
+    <button class="btn" id="refresh">Yenile</button>
+    <button class="btn" id="csvC">Konteyner CSV</button>
+    <button class="btn" id="csvA">Uygulama CSV</button>
+    <a class="btn" href="/">Ana sayfa</a>
+  </div>
+</header>
+
+<div class="alerts" id="alerts"></div>
+
+<div class="tiles" id="tiles"></div>
+
+<section>
+  <div class="sec"><h2>Uygulamalar ve alan adları</h2><span class="note" id="appsNote">HTTP probu 60 sn, sertifika 60 sn</span></div>
+  <div class="tbl"><table id="apps"><thead><tr>
+    <th>Uygulama</th><th>Alan adı</th><th>HTTP</th><th class="num">Yanıt</th><th class="num">Sertifika</th><th>Konteyner</th><th class="num">CPU</th><th class="num">RAM</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<section>
+  <div class="sec"><h2>Konteynerler</h2><div class="tools"><input class="f" id="filter" placeholder="Ada / gruba göre süz"><span class="note" id="ctNote"></span></div></div>
+  <div class="tbl"><table id="cts"><thead><tr>
+    <th data-k="name">Ad</th><th data-k="group_name">Grup</th><th data-k="state">Durum</th><th data-k="status">Süre</th><th class="num" data-k="cpu_pct" data-dir="">CPU %</th><th class="num" data-k="mem">RAM</th><th class="num" data-k="mem_limit">Limit</th><th class="num" data-k="rx">Gelen</th><th class="num" data-k="tx">Giden</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<section>
+  <div class="sec"><h2>Docker disk kullanımı</h2><span class="note" id="dfNote">10 dakikada bir</span></div>
+  <div class="df" id="df"></div>
+</section>
+
+<section>
+  <details>
+    <summary>Formüller ve eşikler</summary>
+    <ul>
+      <li><code>CPU %</code> = Δ meşgul jiffies / Δ toplam jiffies × 100 — host <code>/proc/stat</code>, 5 sn'lik iki örnek arası.</li>
+      <li><code>RAM %</code> = (MemTotal − MemAvailable) / MemTotal × 100 — host <code>/proc/meminfo</code>. Önbellek/tampon "kullanılabilir" sayılır.</li>
+      <li><code>Disk %</code> = (blocks − bfree) / blocks × 100 — kök bölüm <code>statvfs</code>. Supabase verisi ayrı 50 GB imajda, kök diski dolduramaz.</li>
+      <li><code>Konteyner CPU %</code> = Δcpu_usage / Δsystem_usage × çekirdek × 100 — Docker stats API. Toplam 8 çekirdek için üst sınır %800.</li>
+      <li><code>Konteyner RAM</code> = memory_stats.usage − inactive_file — <code>docker stats</code> ile aynı.</li>
+      <li><code>Yük</code> = 1/5/15 dakikalık ortalama; çekirdek sayısını (8) aşarsa kuyruklanma var.</li>
+      <li>Eşikler: disk ≥%80 uyarı, ≥%90 kritik · RAM ≥%85 uyarı · takas ≥%60 uyarı · CPU ≥%90 uyarı · sertifika ≤14 gün uyarı, ≤5 gün kritik · HTTP ≠ 200 kritik · konteyner çalışmıyor/sağlıksız kritik.</li>
+      <li>Ajan: stdlib Python, Docker soketi salt-okunur, host <code>/proc</code> ve kök salt-okunur bağlı. Yazma yetkisi yok.</li>
+    </ul>
+  </details>
+</section>
+
+<footer><span id="errors" class="err"></span><span class="mono">Kaynak: /api/status · sunucu saati UTC</span></footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const GB = 1024**3, MB = 1024**2;
+const fmtB = b => b==null ? "–" : b >= GB ? (b/GB).toFixed(b>=10*GB?0:1)+" GB" : b >= MB ? (b/MB).toFixed(0)+" MB" : (b/1024).toFixed(0)+" KB";
+const fmtUp = s => { const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60); return d?`${d} g ${h} sa`:h?`${h} sa ${m} dk`:`${m} dk`; };
+const lvl = (v, warn, bad) => v==null ? "" : v >= bad ? "bad" : v >= warn ? "warn" : "ok";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hist = { cpu: [], mem: [] };
+let DATA = null, sortK = "cpu_pct", sortDir = "desc", timer = null;
+
+function spark(canvas, arr, color){
+  const dpr = devicePixelRatio||1, w = canvas.clientWidth, h = canvas.clientHeight; if(!w) return;
+  canvas.width = w*dpr; canvas.height = h*dpr; const c = canvas.getContext("2d"); c.scale(dpr,dpr); c.clearRect(0,0,w,h);
+  if(arr.length<2) return; c.beginPath(); c.strokeStyle = color; c.lineWidth = 1.5;
+  arr.forEach((v,i)=>{ const x = i/(59)*w, y = h - (v/100)*(h-4) - 2; i?c.lineTo(x,y):c.moveTo(x,y); }); c.stroke();
+}
+
+function tile(k, v, unit, s, pct, level, id){
+  return `<div class="tile" data-level="${level}"><div class="k">${k}</div><div class="v">${v}<small>${unit||""}</small></div><div class="s">${s||""}</div>${pct!=null?`<div class="bar"><b style="width:${Math.min(100,pct)}%"></b></div>`:""}${id?`<canvas id="${id}"></canvas>`:""}</div>`;
+}
+
+function render(d){
+  DATA = d; const h = d.host, cts = d.containers||[], apps = d.apps||[];
+  $("#stamp").textContent = new Date(d.now).toLocaleTimeString("tr-TR");
+  if(h){
+    $("#hostname").textContent = `${h.hostname} · 159.195.199.119 · ${h.cores} çekirdek`;
+    if(h.cpu_pct!=null){ hist.cpu.push(h.cpu_pct); if(hist.cpu.length>60) hist.cpu.shift(); }
+    hist.mem.push(h.mem.pct); if(hist.mem.length>60) hist.mem.shift();
+    const running = cts.filter(c=>c.state==="running").length, unhealthy = cts.filter(c=>c.health==="unhealthy"||c.state!=="running").length;
+    $("#tiles").innerHTML =
+      tile("CPU", h.cpu_pct==null?"–":h.cpu_pct.toFixed(1), "%", `yük ${h.load.map(x=>x.toFixed(2)).join(" / ")}`, h.cpu_pct, lvl(h.cpu_pct,70,90), "spCpu") +
+      tile("RAM", h.mem.pct.toFixed(1), "%", `${fmtB(h.mem.used)} / ${fmtB(h.mem.total)} · boş ${fmtB(h.mem.available)}`, h.mem.pct, lvl(h.mem.pct,75,85), "spMem") +
+      tile("Disk (kök)", h.disk.pct.toFixed(1), "%", `${fmtB(h.disk.used)} / ${fmtB(h.disk.total)} · boş ${fmtB(h.disk.free)}`, h.disk.pct, lvl(h.disk.pct,80,90)) +
+      tile("Takas", h.swap.pct.toFixed(1), "%", `${fmtB(h.swap.used)} / ${fmtB(h.swap.total)}`, h.swap.pct, lvl(h.swap.pct,40,60)) +
+      tile("Yük / çekirdek", (h.load[0]/h.cores).toFixed(2), "", `1 dk ${h.load[0].toFixed(2)} · ${h.cores} çekirdek`, h.load[0]/h.cores*100, lvl(h.load[0]/h.cores,0.7,1)) +
+      tile("Çalışma süresi", fmtUp(h.uptime_s), "", "yeniden başlatmadan beri", null, "") +
+      tile("Konteynerler", `${running}<small>/ ${cts.length}</small>`, "", unhealthy?`${unhealthy} sorunlu`:"hepsi çalışıyor", null, unhealthy?"bad":"ok");
+    spark($("#spCpu"), hist.cpu, "#7dd3fc"); spark($("#spMem"), hist.mem, "#34d399");
+  }
+
+  // uyarılar
+  const al = [];
+  if(h){
+    if(h.disk.pct>=90) al.push(["bad",`Kök disk kritik: %${h.disk.pct}`]); else if(h.disk.pct>=80) al.push(["warn",`Kök disk %${h.disk.pct} doldu`]);
+    if(h.mem.pct>=85) al.push(["warn",`RAM yüksek: %${h.mem.pct}`]);
+    if(h.swap.pct>=60) al.push(["warn",`Takas kullanımı yüksek: %${h.swap.pct}`]);
+    if(h.cpu_pct>=90) al.push(["warn",`CPU yüksek: %${h.cpu_pct}`]);
+  }
+  cts.filter(c=>c.state!=="running").forEach(c=>al.push(["bad",`Konteyner çalışmıyor: ${c.name} (${c.status})`]));
+  cts.filter(c=>c.health==="unhealthy").forEach(c=>al.push(["bad",`Konteyner sağlıksız: ${c.name}`]));
+  apps.forEach(a=>{ if(a.http!==200) al.push(["bad",`${a.name}: HTTP ${a.http??"yanıt yok"} (${a.domain}) ${a.http_err||""}`]);
+    const dd=a.cert?.days; if(dd!=null && dd<=5) al.push(["bad",`${a.domain} sertifikası ${dd} gün içinde bitiyor`]); else if(dd!=null && dd<=14) al.push(["warn",`${a.domain} sertifikası ${dd} gün içinde bitiyor`]); else if(dd==null && a.cert) al.push(["warn",`${a.domain} sertifikası okunamadı: ${a.cert.err||""}`]); });
+  Object.entries(d.errors||{}).forEach(([k,v])=>al.push(["warn",`Ajan hatası (${k}): ${v}`]));
+  $("#alerts").innerHTML = al.length ? al.map(([c,t])=>`<div class="alert ${c}"><i></i><span>${esc(t)}</span></div>`).join("") : `<div class="alert ok"><i></i><span>Her şey yolunda: tüm konteynerler çalışıyor, tüm alan adları 200 döndü, sertifikalar geçerli.</span></div>`;
+
+  // uygulamalar
+  const byApp = {}; cts.forEach(c=>{ (byApp[c.group] ||= []).push(c); });
+  $("#apps tbody").innerHTML = apps.map(a=>{
+    const cs = byApp[a.id]||[], cpu = cs.reduce((s,c)=>s+(c.cpu_pct||0),0), mem = cs.reduce((s,c)=>s+(c.mem||0),0);
+    const bad = cs.filter(c=>c.state!=="running"||c.health==="unhealthy").length;
+    const hl = a.http===200?"ok":"bad", dd = a.cert?.days, cl = dd==null?"warn":dd<=5?"bad":dd<=14?"warn":"ok";
+    return `<tr><td><span class="dot ${bad||a.http!==200?"bad":"ok"}"></span>${esc(a.name)}</td><td><a class="mono muted" href="https://${a.domain}" target="_blank" rel="noopener">${a.domain}</a></td>
+      <td><span class="pill ${hl}">${a.http??"yok"}</span></td><td class="num">${a.ms} ms</td>
+      <td class="num"><span class="pill ${cl}">${dd==null?"?":dd.toFixed(0)+" gün"}</span></td>
+      <td>${cs.length?`${cs.length-bad}/${cs.length} sağlıklı`:'<span class="muted">–</span>'}</td>
+      <td class="num">${cs.length?cpu.toFixed(1)+" %":"–"}</td><td class="num">${cs.length?fmtB(mem):"–"}</td></tr>`;
+  }).join("");
+  $("#appsNote").textContent = d.updated?.apps ? "prob: "+new Date(d.updated.apps).toLocaleTimeString("tr-TR") : "prob bekleniyor";
+
+  renderCts();
+
+  const df = d.docker_df;
+  $("#df").innerHTML = df ? [["İmajlar",df.images],["Birimler (volume)",df.volumes],["Konteyner yazma katmanı",{count:df.containers.count,size:df.containers.size}],["Derleme önbelleği",df.build_cache]]
+    .map(([k,v])=>tile(k, fmtB(v.size), "", `${v.count} adet${v.reclaimable!=null?" · geri kazanılabilir "+fmtB(v.reclaimable):""}`, v.reclaimable!=null&&v.size?v.reclaimable/v.size*100:null, "")).join("")
+    : `<div class="tile"><div class="s">docker system df hesaplanıyor…</div></div>`;
+  $("#dfNote").textContent = d.updated?.docker_df ? "ölçüm: "+new Date(d.updated.docker_df).toLocaleTimeString("tr-TR") : "10 dakikada bir";
+  $("#errors").textContent = Object.keys(d.errors||{}).length ? "Ajan hataları var, uyarı bandına bak." : "";
+}
+
+function renderCts(){
+  if(!DATA) return; const q = $("#filter").value.trim().toLowerCase();
+  let rows = (DATA.containers||[]).filter(c=>!q || c.name.toLowerCase().includes(q) || c.group_name.toLowerCase().includes(q));
+  rows.sort((a,b)=>{ let x=a[sortK], y=b[sortK]; if(x==null) x=-1; if(y==null) y=-1; if(typeof x==="string") return sortDir==="asc"?x.localeCompare(y):y.localeCompare(x); return sortDir==="asc"?x-y:y-x; });
+  const maxCpu = Math.max(1, ...rows.map(c=>c.cpu_pct||0));
+  $("#cts tbody").innerHTML = rows.map(c=>{
+    const st = c.state!=="running"?"bad":c.health==="unhealthy"?"bad":c.health==="starting"?"warn":"ok";
+    const label = c.state!=="running"?c.state:c.health==="none"?"çalışıyor":c.health==="healthy"?"sağlıklı":c.health==="unhealthy"?"sağlıksız":"başlıyor";
+    return `<tr><td class="mono">${esc(c.name)}</td><td class="muted">${esc(c.group_name)}</td><td><span class="dot ${st}"></span>${label}</td><td class="muted">${esc(c.status.replace(/\s*\(.*\)/,""))}</td>
+      <td class="num">${c.cpu_pct==null?"–":c.cpu_pct.toFixed(2)}<span class="mini"><b style="width:${(c.cpu_pct||0)/maxCpu*100}%"></b></span></td>
+      <td class="num">${fmtB(c.mem)}</td><td class="num muted">${c.mem_limit&&c.mem_limit<1e15?fmtB(c.mem_limit):"–"}</td><td class="num muted">${fmtB(c.rx)}</td><td class="num muted">${fmtB(c.tx)}</td></tr>`;
+  }).join("");
+  const tot = (DATA.containers||[]).reduce((s,c)=>s+(c.mem||0),0), tcpu = (DATA.containers||[]).reduce((s,c)=>s+(c.cpu_pct||0),0);
+  $("#ctNote").textContent = `${rows.length} konteyner · toplam CPU ${tcpu.toFixed(1)} % · toplam RAM ${fmtB(tot)} · ${DATA.updated?.containers?new Date(DATA.updated.containers).toLocaleTimeString("tr-TR"):""}`;
+  document.querySelectorAll("#cts th[data-k]").forEach(th=>th.dataset.dir = th.dataset.k===sortK?sortDir:"");
+}
+
+document.querySelectorAll("#cts th[data-k]").forEach(th=>th.addEventListener("click",()=>{ if(sortK===th.dataset.k) sortDir = sortDir==="asc"?"desc":"asc"; else { sortK=th.dataset.k; sortDir = ["name","group_name","state","status"].includes(sortK)?"asc":"desc"; } renderCts(); }));
+$("#filter").addEventListener("input", renderCts);
+
+function csv(rows, name){
+  if(!rows.length) return; const keys = Object.keys(rows[0]);
+  const txt = [keys.join(","), ...rows.map(r=>keys.map(k=>{ const v = r[k]; const s = v==null?"":typeof v==="object"?JSON.stringify(v):String(v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(","))].join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿"+txt],{type:"text/csv;charset=utf-8"})); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+$("#csvC").onclick = () => csv((DATA?.containers||[]).map(c=>({ad:c.name,grup:c.group_name,durum:c.state,saglik:c.health,sure:c.status,cpu_pct:c.cpu_pct,ram_byte:c.mem,limit_byte:c.mem_limit,gelen_byte:c.rx,giden_byte:c.tx,imaj:c.image})), `konteynerler-${new Date().toISOString().slice(0,16)}.csv`);
+$("#csvA").onclick = () => csv((DATA?.apps||[]).map(a=>({uygulama:a.name,alan_adi:a.domain,http:a.http,yanit_ms:a.ms,sertifika_gun:a.cert?.days,sertifika_bitis:a.cert?.not_after,veren:a.cert?.issuer,hata:a.http_err||a.cert?.err||""})), `uygulamalar-${new Date().toISOString().slice(0,16)}.csv`);
+
+async function load(){
+  try { const r = await fetch("/api/status", {cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); render(await r.json()); }
+  catch(e){ $("#errors").textContent = "Veri alınamadı: "+e.message; }
+}
+function schedule(){ clearInterval(timer); if($("#auto").getAttribute("aria-pressed")==="true") timer = setInterval(load, 15000); }
+$("#auto").onclick = e => { const on = e.currentTarget.getAttribute("aria-pressed")!=="true"; e.currentTarget.setAttribute("aria-pressed", on); schedule(); };
+$("#refresh").onclick = load;
+load(); schedule();
+</script>
+</body>
+</html>
