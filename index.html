@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumii — triallumii.online</title>
+<meta name="description" content="triallumii.online altında yayında olan Lumii uygulamaları ve tanıtım sayfaları: FinRadar, PLANIX, GES Stüdyo, Invoice AI, DersKoçu, GrossMarket, RotaPlan, TARCAN.">
+<meta name="theme-color" content="#0b1020">
+<meta property="og:title" content="Lumii — uygulama vitrini">
+<meta property="og:description" content="triallumii.online altındaki tüm uygulamalar ve tanıtım sayfaları tek yerde.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1020'/%3E%3Cpath d='M20 16v26h24' fill='none' stroke='%237dd3fc' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1020; --bg2:#0f172a; --card:#121a2e; --card2:#172038; --line:#223052;
+    --fg:#e8edf7; --muted:#96a3c0; --dim:#5f6d8c; --accent:#7dd3fc; --ok:#34d399; --bad:#f87171; --wait:#fbbf24;
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--fg);font-family:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+  a{color:inherit;text-decoration:none}
+  .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  /* arka plan dokusu */
+  .bg{position:fixed;inset:0;z-index:-1;background:
+      radial-gradient(900px 500px at 15% -10%, rgba(125,211,252,.16), transparent 60%),
+      radial-gradient(700px 400px at 90% 10%, rgba(52,211,153,.10), transparent 60%),
+      var(--bg)}
+  .bg:after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(#000 0%,transparent 70%)}
+
+  header{padding:28px 0}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.01em;font-size:18px}
+  .brand .mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1e293b,#0b1020);border:1px solid var(--line);display:grid;place-items:center}
+  .brand .mark svg{width:20px;height:20px}
+  .brand small{display:block;font-weight:500;font-size:12px;color:var(--dim);letter-spacing:.04em}
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .status b{color:var(--fg);font-weight:700}
+
+  .hero{padding:48px 0 28px}
+  .hero h1{font-size:clamp(34px,5.4vw,60px);line-height:1.02;letter-spacing:-.03em;margin:0 0 16px;font-weight:800;max-width:14ch}
+  .hero h1 span{color:var(--accent)}
+  .hero p{font-size:17px;color:var(--muted);max-width:56ch;margin:0}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:18px}
+  .kicker:before{content:"";width:22px;height:1px;background:var(--dim)}
+
+  .filters{display:flex;flex-wrap:wrap;gap:8px;padding:26px 0 18px;position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 70%,transparent)}
+  .chip{border:1px solid var(--line);background:rgba(18,26,46,.7);color:var(--muted);padding:8px 14px;border-radius:999px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);transition:.15s}
+  .chip:hover{color:var(--fg);border-color:#33466f}
+  .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .chip .n{opacity:.6;margin-left:6px;font-weight:500}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:20px;padding-bottom:40px}
+  .card{position:relative;min-width:0;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;--c:var(--accent)}
+  .card:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--c) 55%,var(--line));box-shadow:0 20px 50px -24px color-mix(in srgb,var(--c) 60%,transparent)}
+  .card[hidden]{display:none}
+  .shot{position:relative;aspect-ratio:16/10;overflow:hidden;background:#0a0f1c;border-bottom:1px solid var(--line)}
+  .shot img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .5s ease}
+  .card:hover .shot img{transform:scale(1.03)}
+  .shot:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(11,16,32,.55))}
+  .tag{position:absolute;top:12px;left:12px;z-index:1;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:8px;background:rgba(11,16,32,.75);color:#fff;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px)}
+  .body{padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .head{display:flex;align-items:center;gap:12px}
+  .logo{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  .head h2{margin:0;font-size:18px;letter-spacing:-.01em;font-weight:800}
+  .head .sub{font-size:12px;color:var(--dim);margin-top:1px}
+  .desc{margin:0;color:var(--muted);font-size:14px;line-height:1.55;flex:1}
+  .foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:4px;padding-top:12px;border-top:1px dashed var(--line);font-size:12.5px}
+  .url{color:var(--dim);overflow-wrap:anywhere}
+  .card:hover .url{color:var(--accent)}
+  .live{display:inline-flex;align-items:center;gap:6px;color:var(--dim);white-space:nowrap}
+  .live i{width:8px;height:8px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 0 transparent}
+  .live[data-state="ok"]{color:var(--ok)}   .live[data-state="ok"] i{background:var(--ok);box-shadow:0 0 0 4px rgba(52,211,153,.15)}
+  .live[data-state="bad"]{color:var(--bad)} .live[data-state="bad"] i{background:var(--bad)}
+  .live[data-state="wait"] i{background:var(--wait);animation:pulse 1s infinite alternate}
+  @keyframes pulse{to{opacity:.35}}
+  .go{position:absolute;inset:0;z-index:2}
+
+  .infra{margin:8px 0 48px;border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;background:rgba(18,26,46,.5);display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px}
+  .infra h3{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .infra .row{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+  .infra code{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--fg);background:#0a0f1c;border:1px solid var(--line);padding:3px 8px;border-radius:7px}
+
+  footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--dim);font-size:13px;display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+  footer a:hover{color:var(--fg)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:640px){.hero{padding:28px 0 12px}.hero p{font-size:15px}.filters{padding-top:18px}.top{align-items:flex-start}.status{display:none}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+
+<header class="wrap">
+  <div class="top">
+    <a class="brand" href="/">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><path d="M20 16v26h24" stroke="#7dd3fc" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span>Lumii<small class="mono">triallumii.online</small></span>
+    </a>
+    <div class="status" id="summary"><b id="okCount">–</b>&nbsp;/ <span id="total">0</span> uygulama yayında</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="kicker">Uygulama vitrini</div>
+    <h1>Yayındaki tüm <span>Lumii</span> uygulamaları tek yerde.</h1>
+    <p>Bu alan adı altında çalışan web uygulamaları, panolar ve iPhone uygulaması tanıtım sayfaları. Bir karta tıkla, uygulamaya git.</p>
+  </section>
+
+  <div class="filters" id="filters" role="group" aria-label="Kategoriye göre süz">
+    <button class="chip" aria-pressed="true" data-f="all">Tümü<span class="n"></span></button>
+    <button class="chip" aria-pressed="false" data-f="web">Web uygulaması<span class="n"></span></button>
+    <button class="chip" aria-pressed="false" data-f="pano">Pano<span class="n"></span></button>
+    <button class="chip" aria-pressed="false" data-f="ios">iPhone uygulaması<span class="n"></span></button>
+    <button class="chip" aria-pressed="false" data-f="site">Tanıtım sitesi<span class="n"></span></button>
+  </div>
+
+  <section class="grid" id="grid" aria-label="Projeler"></section>
+
+  <section class="infra" aria-label="Altyapı">
+    <h3>Altyapı</h3>
+    <div class="row"><code>supabase.triallumii.online</code> DersKoçu arka ucu (kimlik doğrulama, veri tabanı, sunucu işlevleri). Sayfa değil, uygulama içinden kullanılır.</div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>© <span id="year"></span> Lumii · Tüm uygulamalar aynı sunucuda, Let's Encrypt ile şifreli.</span>
+  <span class="mono">Cloudflare DNS · Coolify · Traefik</span>
+</footer>
+
+<script>
+const PROJECTS = [
+  { id:"finradar", name:"FinRadar", sub:"Mali erken uyarı sistemi", cat:"web", color:"#1e4074", mark:"FR",
+    desc:"Şirketinin mali sorununu bilançoya yansımadan aylar önce söyler. Mizan veya PDF yükle; 13 haftalık nakit radarı, çok ajanlı analiz ve TL cinsinden öneriler alırsın." },
+  { id:"planix", name:"PLANIX", sub:"Üretim planlama", cat:"web", color:"#1d4ed8", mark:"PX",
+    desc:"Üç hatlı montaj üretimi için sipariş atama ve sıralama. Kısıt tabanlı çözücü ile plan üretir, hat kartlarında OEE ve teslim uyumunu gösterir." },
+  { id:"ges", name:"GES Stüdyo", sub:"Sunable AI · çatı güneş santrali panosu", cat:"pano", color:"#0f9d7a", mark:"GS",
+    desc:"Fabrika çatısındaki güneş santralinin anlık üretimi, önümüzdeki saatlerin bulut riski ve 3 boyutlu saha görünümü. Anahtar gerektirmeden açık hava verisiyle çalışır." },
+  { id:"invoice", name:"Invoice AI", sub:"Faturadan veri çıkarma", cat:"web", color:"#0ea5e9", mark:"IA",
+    desc:"Fatura PDF'i veya fotoğrafını bırak; başlık bilgileri ve satır kalemleri tablo olarak çıkar. Dijital PDF'lerde saniyeler içinde sonuç." },
+  { id:"derskocu", name:"DersKoçu", sub:"Ortaokul ve lise için AI ders koçu", cat:"ios", color:"#4f46e5", mark:"DK",
+    desc:"Sınıf bazlı konu anlatımı, binlerce soru, fotoğraftan soru çözümü, çalışma planı ve pomodoro. Reklamsız iPhone uygulamasının tanıtım, gizlilik ve destek sayfaları." },
+  { id:"market", name:"GrossMarket", sub:"Kasaya gelmeden toplamı bil", cat:"ios", color:"#20a860", mark:"GM",
+    desc:"Markette raf etiketini tara, adet veya kilo gir, sepetin canlı toplamını gör. Ücretsiz, reklamsız, internet gerektirmeyen iPhone uygulaması." },
+  { id:"rotaplan", name:"RotaPlan", sub:"Rota ve masraf planlayıcı", cat:"ios", color:"#ff7a1a", mark:"RP",
+    desc:"Türkiye için alternatif rotalar, yakıt ve HGS masrafı, elektrikli araç şarj planı. Yola çıkmadan toplam maliyeti gösteren iPhone uygulaması." },
+  { id:"vitrin", name:"TARCAN", sub:"Kurumsal bilgi zekâsı", cat:"site", color:"#0e6ba8", mark:"TC",
+    desc:"Şirket içi belge kaynaklarını tek yapay zekâ platformunda birleştirme: arama, soru-cevap ve içgörü üretimi. Ürün tanıtım sitesi." },
+];
+const CATS = { web:"Web uygulaması", pano:"Pano", ios:"iPhone uygulaması", site:"Tanıtım sitesi" };
+
+const grid = document.getElementById("grid");
+grid.innerHTML = PROJECTS.map(p => {
+  const url = `https://${p.id}.triallumii.online`;
+  return `<article class="card" data-cat="${p.cat}" style="--c:${p.color}">
+    <div class="shot"><span class="tag">${CATS[p.cat]}</span><img src="/assets/${p.id}.jpg" alt="${p.name} ekran görüntüsü" loading="lazy" width="800" height="500"></div>
+    <div class="body">
+      <div class="head"><span class="logo" aria-hidden="true">${p.mark}</span><div><h2>${p.name}</h2><div class="sub">${p.sub}</div></div></div>
+      <p class="desc">${p.desc}</p>
+      <div class="foot"><span class="url mono">${p.id}.triallumii.online ↗</span><span class="live" data-state="wait" data-url="${url}"><i></i><span>kontrol</span></span></div>
+    </div>
+    <a class="go" href="${url}" aria-label="${p.name} uygulamasını aç"></a>
+  </article>`;
+}).join("");
+
+/* süzgeç */
+const chips = [...document.querySelectorAll("#filters .chip")];
+const counts = { all: PROJECTS.length };
+PROJECTS.forEach(p => counts[p.cat] = (counts[p.cat]||0)+1);
+chips.forEach(c => { c.querySelector(".n").textContent = counts[c.dataset.f] || 0; });
+chips.forEach(c => c.addEventListener("click", () => {
+  chips.forEach(x => x.setAttribute("aria-pressed", x===c));
+  const f = c.dataset.f;
+  document.querySelectorAll(".card").forEach(card => card.hidden = !(f==="all" || card.dataset.cat===f));
+}));
+
+/* canlılık kontrolü: siteler farklı kaynaklarda, bu yüzden yalnız erişilebilirliği ölçer */
+document.getElementById("total").textContent = PROJECTS.length;
+let ok = 0;
+async function ping(el){
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 7000);
+  try { await fetch(el.dataset.url + "/?_=" + Date.now(), { mode:"no-cors", cache:"no-store", signal:ctrl.signal });
+        el.dataset.state = "ok"; el.lastElementChild.textContent = "yayında"; ok++; }
+  catch { el.dataset.state = "bad"; el.lastElementChild.textContent = "yanıt yok"; }
+  finally { clearTimeout(t); document.getElementById("okCount").textContent = ok; }
+}
+document.querySelectorAll(".live").forEach(ping);
+document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
