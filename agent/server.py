@@ -28,6 +28,7 @@ APPS = [
     {"id": "market",   "name": "GrossMarket",        "domain": "market.triallumii.online",   "match": ["gtjsfiqkffmr6uw9bsyunnvy"]},
     {"id": "rotaplan", "name": "RotaPlan",           "domain": "rotaplan.triallumii.online", "match": ["5bxjwsr156k3farugk3rkv0b"]},
     {"id": "vitrin",   "name": "TARCAN",             "domain": "vitrin.triallumii.online",   "match": ["teszcecvuwghaif17ry8cieb"]},
+    {"id": "excel",    "name": "Excel Analyzer",     "domain": "excel.triallumii.online",    "match": ["tc3ls74qhspkrfdjaied7qyo"], "ok": [200, 401]},
     {"id": "supabase", "name": "Supabase (DersKoçu)","domain": "supabase.triallumii.online", "match": ["supabase-"], "path": "/auth/v1/health", "ok": [200, 401]},
     {"id": "shift",    "name": "ShiftTracker",       "domain": "shifttracker.online",        "match": ["z77nzo80cc1uzdgyd1lvcloq", "uz1amejxymtdldwqvlej8emv", "l31sovixufjbrdoqkypgbbub"]},
 ]
