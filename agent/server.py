@@ -7,7 +7,8 @@ Formüller:
   Konteyner CPU%  = Δcpu_usage / Δsystem_usage × online_cpus × 100         (Docker stats API)
   Konteyner RAM   = memory_stats.usage − inactive_file                     (Docker stats API)
 """
-import json, os, time, threading, socket, ssl, http.client, urllib.request, urllib.error
+import json, os, sys, time, threading, socket, ssl, http.client, urllib.request, urllib.error
+import hmac, hashlib, base64, struct, secrets, re, http.cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -243,31 +244,363 @@ def loop(name, fn, every):
         time.sleep(max(1, every - (time.time() - t0)))
 
 
+# ---------- kimlik doğrulama: şifre + TOTP 2FA, çerez oturumu ----------
+# Şifre : DASH_PASS_HASH = pbkdf2_sha256$<iterations>$<salt_b64>$<hash_b64>   (yoksa düz DASH_PASS)
+# 2FA   : DASH_TOTP_SECRET = base32 gizli anahtar (RFC 6238, SHA1, 6 hane, 30 sn adım, ±1 pencere)
+# Oturum: lumii_sess çerezi = b64url("<exp>.<user>.<hmac_sha256(DASH_SESSION_KEY, 'exp.user')>")
+# Kaba kuvvet: aynı IP 5 başarısız denemeden sonra 15 dk kilit (bellekte, süreç ömrü boyunca)
+AUTH_USER = os.environ.get("DASH_USER", "").strip()
+AUTH_PASS = os.environ.get("DASH_PASS", "")
+AUTH_PASS_HASH = os.environ.get("DASH_PASS_HASH", "").strip()
+AUTH_TOTP_SECRET = os.environ.get("DASH_TOTP_SECRET", "").strip()
+SESSION_KEY = (os.environ.get("DASH_SESSION_KEY") or secrets.token_hex(32)).encode()
+SESSION_TTL = int(os.environ.get("DASH_SESSION_TTL", "43200"))  # 12 saat
+COOKIE_NAME = "lumii_sess"
+FAIL_LIMIT = 5
+FAIL_LOCK_S = 900
+AUTH_LOCK = threading.Lock()
+_fails = {}            # ip -> {"n": deneme, "until": kilit bitişi}
+_totp_seen = 0         # kullanılmış en yüksek TOTP adımı — kod tekrar kullanımını engeller
+
+
+def alog(msg):
+    print(f"[auth] {datetime.now(timezone.utc).isoformat()} {msg}", file=sys.stderr, flush=True)
+
+
+def _b64d(s):
+    s = s.strip()
+    return base64.b64decode(s + "=" * (-len(s) % 4))
+
+
+def _b64u(b):
+    return base64.urlsafe_b64encode(b).decode().rstrip("=")
+
+
+def _b64ud(s):
+    return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+
+def make_pass_hash(pw, iterations=240000):
+    """`python3 server.py hash <şifre>` ile DASH_PASS_HASH üretmek için.
+
+    Biçim: pbkdf2_sha256:<iterations>:<salt_b64url>:<hash_b64url>
+    Ayraç `:` ve padding'siz base64url — değer tamamen [A-Za-z0-9_:-] kümesinde kalır, böylece
+    Coolify/compose/kabuk katmanları `$` veya `=` yüzünden değeri bozamaz.
+    """
+    salt = secrets.token_bytes(16)
+    h = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt, iterations)
+    return f"pbkdf2_sha256:{iterations}:{_b64u(salt)}:{_b64u(h)}"
+
+
+def _parse_pass_hash(raw):
+    """(iterations, salt, hash) döner. Yeni `:` biçimi ve eski `$` biçimi (b64) desteklenir."""
+    raw = raw.strip()
+    if raw.startswith("pbkdf2_sha256:"):
+        algo, iters, salt_s, hash_s = raw.split(":")
+        return int(iters), _b64ud(salt_s), _b64ud(hash_s)
+    if raw.startswith("pbkdf2_sha256$"):                      # geriye dönük uyum
+        algo, iters, salt_s, hash_s = raw.split("$")
+        return int(iters), _b64d(salt_s), _b64d(hash_s)
+    raise ValueError("bilinmeyen biçim (pbkdf2_sha256:... bekleniyor)")
+
+
+def verify_password(pw):
+    if AUTH_PASS_HASH:
+        try:
+            iters, salt, want = _parse_pass_hash(AUTH_PASS_HASH)
+            got = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt, iters, dklen=len(want))
+        except Exception as e:
+            alog(f"DASH_PASS_HASH okunamadı: {type(e).__name__}: {str(e)[:80]}")
+            return False
+        return hmac.compare_digest(got, want)
+    if AUTH_PASS:  # geriye dönük uyum
+        return hmac.compare_digest(pw.encode(), AUTH_PASS.encode())
+    return False
+
+
+def _totp_key():
+    s = re.sub(r"[\s-]", "", AUTH_TOTP_SECRET).upper()
+    return base64.b32decode(s + "=" * (-len(s) % 8), casefold=True)
+
+
+def totp_code(key, counter, digits=6):
+    mac = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    off = mac[-1] & 0x0F
+    val = struct.unpack(">I", mac[off:off + 4])[0] & 0x7FFFFFFF
+    return str(val % (10 ** digits)).zfill(digits)
+
+
+def verify_totp(code):
+    """(ok, sebep) döner. ±1 pencere toleransı; kullanılan adım bir daha kabul edilmez."""
+    global _totp_seen
+    if not AUTH_TOTP_SECRET:
+        return False, "2fa-yapılandırılmadı"
+    code = re.sub(r"\s", "", code or "")
+    if not (len(code) == 6 and code.isdigit()):
+        return False, "kod-biçimi"
+    try:
+        key = _totp_key()
+    except Exception:
+        return False, "2fa-anahtarı-bozuk"
+    now = int(time.time()) // 30
+    for c in (now, now - 1, now + 1):
+        if hmac.compare_digest(totp_code(key, c), code):
+            with AUTH_LOCK:
+                if c <= _totp_seen:
+                    return False, "kod-tekrar"
+                _totp_seen = c
+            return True, "ok"
+    return False, "kod-yanlış"
+
+
+def session_issue(user, ttl=None):
+    exp = int(time.time()) + int(ttl or SESSION_TTL)
+    body = f"{exp}.{user}"
+    sig = hmac.new(SESSION_KEY, body.encode(), hashlib.sha256).hexdigest()
+    return _b64u(f"{body}.{sig}".encode()), exp
+
+
+def session_verify(token):
+    if not token:
+        return None
+    try:
+        parts = _b64ud(token).decode().split(".")
+        if len(parts) < 3:
+            return None
+        exp_s, sig = parts[0], parts[-1]
+        user = ".".join(parts[1:-1])
+        want = hmac.new(SESSION_KEY, f"{exp_s}.{user}".encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, want):
+            return None
+        exp = int(exp_s)
+    except Exception:
+        return None
+    if exp < time.time():
+        return None
+    return {"user": user, "exp": exp}
+
+
+def lock_left(ip):
+    with AUTH_LOCK:
+        f = _fails.get(ip)
+        if not f or not f["until"]:
+            return 0
+        if f["until"] <= time.time():
+            _fails.pop(ip, None)
+            return 0
+        return int(f["until"] - time.time())
+
+
+def note_fail(ip):
+    with AUTH_LOCK:
+        f = _fails.setdefault(ip, {"n": 0, "until": 0})
+        f["n"] += 1
+        if f["n"] >= FAIL_LIMIT:
+            f["until"] = time.time() + FAIL_LOCK_S
+        if len(_fails) > 5000:  # bellek sızıntısı olmasın
+            for k in [k for k, v in _fails.items() if not v["until"] or v["until"] < time.time()][:2000]:
+                _fails.pop(k, None)
+
+
+def note_ok(ip):
+    with AUTH_LOCK:
+        _fails.pop(ip, None)
+
+
+# ---------- saldırı verisi (host cron'u yazar, biz sadece okuruz) ----------
+SECURITY_FILE = os.environ.get("SECURITY_FILE", "/host/security/attacks.json")
+SECURITY_TTL = 10
+_sec_cache = {"t": 0.0, "v": None}
+
+
+def security_data():
+    now = time.time()
+    with AUTH_LOCK:
+        if _sec_cache["v"] is not None and now - _sec_cache["t"] < SECURITY_TTL:
+            return _sec_cache["v"]
+    try:
+        st = os.stat(SECURITY_FILE)
+        with open(SECURITY_FILE, encoding="utf-8") as f:
+            d = json.load(f)
+        if not isinstance(d, dict):
+            raise ValueError("JSON nesnesi bekleniyor")
+        d = dict(d)
+        d["available"] = True
+        d["file"] = SECURITY_FILE
+        d["file_mtime"] = datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat()
+    except FileNotFoundError:
+        d = {"available": False, "reason": f"dosya yok: {SECURITY_FILE}"}
+    except Exception as e:
+        d = {"available": False, "reason": f"{type(e).__name__}: {str(e)[:160]}"}
+    with AUTH_LOCK:
+        _sec_cache["t"] = now
+        _sec_cache["v"] = d
+    return d
+
+
 class H(BaseHTTPRequestHandler):
+    server_version = "lumii-status"
+    sys_version = ""
+
     def log_message(self, *a):
         pass
 
-    def send_json(self, obj, code=200):
+    # ---- yardımcılar ----
+    def client_ip(self):
+        fwd = self.headers.get("X-Real-IP") or self.headers.get("X-Forwarded-For") or ""
+        return fwd.split(",")[0].strip() or self.client_address[0]
+
+    def cookie(self, name):
+        raw = self.headers.get("Cookie")
+        if not raw:
+            return None
+        try:
+            m = http.cookies.SimpleCookie(raw).get(name)
+            return m.value if m else None
+        except Exception:
+            return None
+
+    def session(self):
+        return session_verify(self.cookie(COOKIE_NAME))
+
+    def send_json(self, obj, code=200, headers=None):
         b = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(b)))
+        for k, v in (headers or []):
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(b)
 
+    def send_empty(self, code=204, headers=None):
+        self.send_response(code)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-store")
+        for k, v in (headers or []):
+            self.send_header(k, v)
+        self.end_headers()
+
+    def read_json(self, limit=8192):
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return None
+        if n <= 0:
+            return None
+        body = self.rfile.read(min(n, limit))
+        if n > limit:
+            return None
+        try:
+            return json.loads(body.decode("utf-8"))
+        except Exception:
+            return None
+
+    def need_session(self):
+        s = self.session()
+        if not s:
+            self.send_json({"error": "yetkisiz"}, 401)
+            return None
+        return s
+
+    # ---- yönlendirme ----
     def do_GET(self):
-        if self.path.startswith("/api/health"):
+        p = self.path.split("?")[0]
+        if p.startswith("/api/health"):
             return self.send_json({"ok": True})
-        if self.path.startswith("/api/status"):
+        if p == "/api/auth/check":                      # nginx auth_request; gövdesiz de çalışır
+            s = self.session()
+            if not s:
+                return self.send_json({"error": "yetkisiz"}, 401)
+            return self.send_json({"user": s["user"], "exp": s["exp"]})
+        if p == "/api/public/apps":                     # vitrin için — kimlik gerektirmez, sadece id/up/ms
+            with LOCK:
+                apps = STATE.get("apps") or []
+                stamp = STATE["updated"].get("apps")
+            return self.send_json({
+                "generated_at": stamp or datetime.now(timezone.utc).isoformat(),
+                "apps": {a["id"]: {"up": bool(a.get("ok")), "ms": a.get("ms")} for a in apps},
+            })
+        if p.startswith("/api/security"):
+            if not self.need_session():
+                return
+            return self.send_json(security_data())
+        if p.startswith("/api/status"):
+            if not self.need_session():
+                return
             with LOCK:
                 snap = json.loads(json.dumps(STATE, ensure_ascii=False))
             snap["now"] = datetime.now(timezone.utc).isoformat()
             return self.send_json(snap)
         self.send_json({"error": "not found"}, 404)
 
+    def do_POST(self):
+        p = self.path.split("?")[0]
+        body = self.read_json() or {}                   # gövde her zaman okunsun (keep-alive)
+        ip = self.client_ip()
+
+        if p == "/api/auth/logout":
+            alog(f"ip={ip} sonuç=çıkış")
+            return self.send_empty(204, [("Set-Cookie", f"{COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0")])
+
+        if p == "/api/auth/login":
+            left = lock_left(ip)
+            if left:
+                alog(f"ip={ip} sonuç=kilitli kalan={left}s")
+                return self.send_json({"error": f"çok fazla deneme — {left // 60 + 1} dk sonra tekrar deneyin"}, 429)
+            if not AUTH_USER or not (AUTH_PASS_HASH or AUTH_PASS) or not AUTH_TOTP_SECRET:
+                alog(f"ip={ip} sonuç=yapılandırma-eksik")
+                return self.send_json({"error": "giriş yapılandırılmadı"}, 503)
+            user = str(body.get("user") or "")
+            pw = str(body.get("pass") or "")
+            code = str(body.get("code") or "")
+            ok_user = hmac.compare_digest(user.encode(), AUTH_USER.encode())
+            ok_pass = verify_password(pw)               # her durumda çalışsın (zamanlama sızıntısı olmasın)
+            if not (ok_user and ok_pass):
+                note_fail(ip)
+                alog(f"ip={ip} user={user[:32]!r} sonuç=başarısız sebep=kimlik")
+                return self.send_json({"error": "kullanıcı adı veya şifre hatalı"}, 401)
+            ok_totp, why = verify_totp(code)
+            if not ok_totp:
+                note_fail(ip)
+                alog(f"ip={ip} user={user[:32]!r} sonuç=başarısız sebep={why}")
+                return self.send_json({"error": "doğrulama kodu geçersiz"}, 401)
+            note_ok(ip)
+            token, exp = session_issue(AUTH_USER)
+            alog(f"ip={ip} user={AUTH_USER!r} sonuç=başarılı exp={exp}")
+            ck = f"{COOKIE_NAME}={token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age={SESSION_TTL}"
+            return self.send_json({"ok": True, "user": AUTH_USER, "exp": exp}, 200, [("Set-Cookie", ck)])
+
+        self.send_json({"error": "not found"}, 404)
+
+
+def _cli():
+    """Kurulum yardımcıları: `python3 server.py hash <şifre>` ve `python3 server.py totp`."""
+    cmd = sys.argv[1]
+    if cmd == "hash":
+        pw = sys.argv[2] if len(sys.argv) > 2 else input("şifre: ")
+        print(make_pass_hash(pw))
+        return True
+    if cmd == "totp":
+        s = base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
+        label = AUTH_USER or "admin"
+        print(s)
+        print(f"otpauth://totp/Lumii%20Pano:{label}?secret={s}&issuer=Lumii&algorithm=SHA1&digits=6&period=30")
+        return True
+    return False
+
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and _cli():
+        raise SystemExit(0)
+    _missing = [k for k, v in (("DASH_USER", AUTH_USER),
+                               ("DASH_PASS_HASH|DASH_PASS", AUTH_PASS_HASH or AUTH_PASS),
+                               ("DASH_TOTP_SECRET", AUTH_TOTP_SECRET)) if not v]
+    if _missing:
+        alog("eksik ortam değişkeni: " + ", ".join(_missing) + " → giriş kapalı, /durum açılmaz")
+    elif not os.environ.get("DASH_SESSION_KEY"):
+        alog("DASH_SESSION_KEY yok → geçici anahtar üretildi; yeniden başlatınca oturumlar düşer")
     cpu_percent()  # ilk örnek
     for name, fn, every in [("host", host_status, 5), ("containers", containers, 15),
                             ("apps", apps_probe, 60), ("docker_df", docker_df, 600)]:

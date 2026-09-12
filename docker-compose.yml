@@ -1,9 +1,6 @@
 services:
   web:
     build: { context: ., dockerfile: web/Dockerfile }
-    environment:
-      DASH_USER: ${DASH_USER}
-      DASH_PASS: ${DASH_PASS}
     depends_on: [ agent ]
     expose: [ "80" ]
     restart: unless-stopped
@@ -11,10 +8,15 @@ services:
     build: { context: ., dockerfile: agent/Dockerfile }
     environment:
       HOST_NAME: netcup-vps
+      DASH_USER: ${DASH_USER}
+      DASH_PASS_HASH: ${DASH_PASS_HASH}
+      DASH_TOTP_SECRET: ${DASH_TOTP_SECRET}
+      DASH_SESSION_KEY: ${DASH_SESSION_KEY}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc:/host/proc:ro
       - /:/host/root:ro
+      - /home/deploy/security:/host/security:ro
     expose: [ "8080" ]
     restart: unless-stopped
     deploy: { resources: { limits: { memory: 256m } } }

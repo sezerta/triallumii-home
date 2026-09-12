@@ -58,11 +58,15 @@
   .card{position:relative;min-width:0;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;--c:var(--accent)}
   .card:hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--c) 55%,var(--line));box-shadow:0 20px 50px -24px color-mix(in srgb,var(--c) 60%,transparent)}
   .card[hidden]{display:none}
-  .shot{position:relative;aspect-ratio:16/10;overflow:hidden;background:#0a0f1c;border-bottom:1px solid var(--line)}
-  .shot img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .5s ease}
+  .shot{position:relative;z-index:0;aspect-ratio:16/10;overflow:hidden;background:#0a0f1c;border-bottom:1px solid var(--line)}
+  .shot img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .5s ease}
   .card:hover .shot img{transform:scale(1.03)}
-  .shot:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(11,16,32,.55))}
-  .tag{position:absolute;top:12px;left:12px;z-index:1;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:8px;background:rgba(11,16,32,.75);color:#fff;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px)}
+  .shot:after{content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(180deg,transparent 60%,rgba(11,16,32,.55))}
+  .fallback{position:absolute;inset:0;z-index:0;display:grid;place-content:center;justify-items:center;gap:10px;text-align:center;padding:16px;
+    background:linear-gradient(150deg,color-mix(in srgb,var(--c) 60%,#0a0f1c),#0a0f1c 78%)}
+  .fallback b{font-size:30px;font-weight:800;letter-spacing:.04em;color:#fff;opacity:.95;line-height:1}
+  .fallback span{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:.06em}
+  .tag{position:absolute;top:12px;left:12px;z-index:3;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 9px;border-radius:8px;background:rgba(11,16,32,.75);color:#fff;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px)}
   .body{padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
   .head{display:flex;align-items:center;gap:12px}
   .logo{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
@@ -76,7 +80,9 @@
   .live i{width:8px;height:8px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 0 transparent}
   .live[data-state="ok"]{color:var(--ok)}   .live[data-state="ok"] i{background:var(--ok);box-shadow:0 0 0 4px rgba(52,211,153,.15)}
   .live[data-state="bad"]{color:var(--bad)} .live[data-state="bad"] i{background:var(--bad)}
+  .live[data-state="na"]{color:var(--dim)}  .live[data-state="na"] i{background:var(--dim)}
   .live[data-state="wait"] i{background:var(--wait);animation:pulse 1s infinite alternate}
+  .live .ms{color:var(--dim);font-size:11px;font-weight:500}
   @keyframes pulse{to{opacity:.35}}
   .go{position:absolute;inset:0;z-index:2}
 
@@ -158,11 +164,13 @@ const grid = document.getElementById("grid");
 grid.innerHTML = PROJECTS.map(p => {
   const url = `https://${p.id}.triallumii.online`;
   return `<article class="card" data-cat="${p.cat}" style="--c:${p.color}">
-    <div class="shot"><span class="tag">${CATS[p.cat]}</span><img src="/assets/${p.id}.jpg" alt="${p.name} ekran görüntüsü" loading="lazy" width="800" height="500"></div>
+    <div class="shot"><span class="tag">${CATS[p.cat]}</span>
+      <div class="fallback" aria-hidden="true"><b>${p.mark}</b><span>${p.name}</span></div>
+      <img src="/assets/${p.id}.jpg" data-src="/assets/${p.id}.jpg" alt="${p.name} ekran görüntüsü" loading="lazy" width="800" height="500" onerror="shotFail(this)"></div>
     <div class="body">
       <div class="head"><span class="logo" aria-hidden="true">${p.mark}</span><div><h2>${p.name}</h2><div class="sub">${p.sub}</div></div></div>
       <p class="desc">${p.desc}</p>
-      <div class="foot"><span class="url mono">${p.id}.triallumii.online ↗</span><span class="live" data-state="wait" data-url="${url}"><i></i><span>kontrol</span></span></div>
+      <div class="foot"><span class="url mono">${p.id}.triallumii.online ↗</span><span class="live" data-state="wait" data-id="${p.id}"><i></i><span class="lbl">kontrol</span><span class="ms mono"></span></span></div>
     </div>
     <a class="go" href="${url}" aria-label="${p.name} uygulamasını aç"></a>
   </article>`;
@@ -179,17 +187,60 @@ chips.forEach(c => c.addEventListener("click", () => {
   document.querySelectorAll(".card").forEach(card => card.hidden = !(f==="all" || card.dataset.cat===f));
 }));
 
-/* canlılık kontrolü: siteler farklı kaynaklarda, bu yüzden yalnız erişilebilirliği ölçer */
-document.getElementById("total").textContent = PROJECTS.length;
-let ok = 0;
-async function ping(el){
-  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 7000);
-  try { await fetch(el.dataset.url + "/?_=" + Date.now(), { mode:"no-cors", cache:"no-store", signal:ctrl.signal });
-        el.dataset.state = "ok"; el.lastElementChild.textContent = "yayında"; ok++; }
-  catch { el.dataset.state = "bad"; el.lastElementChild.textContent = "yanıt yok"; }
-  finally { clearTimeout(t); document.getElementById("okCount").textContent = ok; }
+/* ekran görüntüsü yüklenemezse: bir kez yeniden dene, sonra renkli yedeğe düş */
+function shotFail(img){
+  if(!img.dataset.retried){ img.dataset.retried = "1"; img.src = img.dataset.src + "?r=" + Date.now(); return; }
+  img.remove();
 }
-document.querySelectorAll(".live").forEach(ping);
+
+/* canlılık: tarayıcı tahmini değil, sunucunun gerçek prob sonucu (/api/public/apps) */
+const STATUS_URL = "/api/public/apps";
+const okCount = document.getElementById("okCount");
+const summary = document.getElementById("summary");
+const lives = new Map([...document.querySelectorAll(".live")].map(el => [el.dataset.id, el]));
+document.getElementById("total").textContent = PROJECTS.length;
+
+function setLive(el, state, label, ms){
+  if(!el) return;
+  el.dataset.state = state;
+  el.querySelector(".lbl").textContent = label;
+  el.querySelector(".ms").textContent = (state !== "na" && Number.isFinite(ms)) ? Math.round(ms) + " ms" : "";
+}
+
+async function refreshStatus(){
+  let apps = null, at = null;
+  try{
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(STATUS_URL + "?_=" + Date.now(), { cache:"no-store", signal:ctrl.signal });
+    clearTimeout(t);
+    if(r.ok){
+      const d = await r.json();
+      if(d && d.apps && typeof d.apps === "object"){ apps = d.apps; at = d.generated_at; }
+    }
+  }catch{}
+
+  if(!apps){                       /* veri yok → kırmızı değil, nötr */
+    lives.forEach(el => setLive(el, "na", "durum bilinmiyor"));
+    okCount.textContent = "–";
+    summary.title = "Durum verisi alınamadı";
+    return;
+  }
+
+  let ok = 0, known = 0;
+  PROJECTS.forEach(p => {
+    const el = lives.get(p.id), a = apps[p.id];
+    if(!a || typeof a.up !== "boolean"){ setLive(el, "na", "durum bilinmiyor"); return; }
+    known++;
+    if(a.up){ ok++; setLive(el, "ok", "yayında", a.ms); }
+    else { setLive(el, "bad", "yanıt yok", a.ms); }
+  });
+  okCount.textContent = known ? ok : "–";
+  const d = at ? new Date(at) : null;
+  summary.title = d && !isNaN(d) ? "Son kontrol: " + d.toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"}) : "";
+}
+
+refreshStatus();
+setInterval(refreshStatus, 60000);
 document.getElementById("year").textContent = new Date().getFullYear();
 </script>
 </body>
