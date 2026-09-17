@@ -4,7 +4,7 @@ COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY web/sec_headers.conf /etc/nginx/sec_headers.conf
 COPY web/entrypoint.sh /docker-entrypoint.d/40-dash-auth.sh
 RUN chmod +x /docker-entrypoint.d/40-dash-auth.sh
-COPY index.html durum.html giris.html /usr/share/nginx/html/
+COPY index.html durum.html giris.html app-ads.txt /usr/share/nginx/html/
 COPY assets/ /usr/share/nginx/html/assets/
 COPY moneyinmypocket/ /usr/share/nginx/html/moneyinmypocket/
 EXPOSE 80
