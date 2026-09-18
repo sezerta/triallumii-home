@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Jet Fighter — Privacy Policy. Choose your language.">
+<title>Jet Fighter — Privacy Policy</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#0a0e1a;
+    color:#e5e9f0;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:24px;
+    text-align:center;
+  }
+  .badge{
+    display:inline-block;
+    padding:6px 14px;
+    background:rgba(245,200,66,.12);
+    color:#f5c842;
+    border:1px solid rgba(245,200,66,.35);
+    border-radius:999px;
+    font-size:13px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:24px;
+  }
+  h1{
+    font-size:clamp(36px,7vw,56px);
+    font-weight:800;
+    letter-spacing:-.02em;
+    margin-bottom:14px;
+    background:linear-gradient(180deg,#fff 0%,#f5c842 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  .subtitle{
+    font-size:clamp(16px,2.4vw,19px);
+    color:#a8b0c0;
+    margin-bottom:48px;
+    max-width:520px;
+  }
+  .lang-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+    width:100%;
+    max-width:420px;
+  }
+  @media(min-width:520px){
+    .lang-grid{grid-template-columns:1fr 1fr;gap:20px}
+  }
+  .lang-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:28px 20px;
+    background:#141a2a;
+    color:#e5e9f0;
+    text-decoration:none;
+    border:1px solid rgba(245,200,66,.2);
+    border-radius:14px;
+    transition:transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .lang-btn:hover,.lang-btn:focus{
+    transform:translateY(-2px);
+    border-color:#f5c842;
+    background:#1a2138;
+    outline:none;
+  }
+  .lang-btn .flag{font-size:32px;margin-bottom:8px;line-height:1}
+  .lang-btn .name{font-size:20px;font-weight:700;color:#f5c842;margin-bottom:4px}
+  .lang-btn .label{font-size:13px;color:#a8b0c0;letter-spacing:.04em;text-transform:uppercase}
+  footer{
+    padding:24px;
+    text-align:center;
+    color:#6b7488;
+    font-size:13px;
+    border-top:1px solid rgba(255,255,255,.05);
+  }
+  @media print{
+    body{background:#fff;color:#000}
+    .lang-btn{border:1px solid #000;background:#fff;color:#000}
+    .lang-btn .name{color:#000}
+  }
+</style>
+</head>
+<body>
+<main>
+  <span class="badge">Privacy Policy</span>
+  <h1>Jet Fighter</h1>
+  <p class="subtitle">Please choose your language to view the privacy policy.<br>Lütfen gizlilik politikasını görüntülemek için dilinizi seçin.</p>
+  <nav class="lang-grid" aria-label="Language selection">
+    <a class="lang-btn" href="/jetfighter/tr" hreflang="tr">
+      <span class="flag" aria-hidden="true">TR</span>
+      <span class="name">Türkçe</span>
+      <span class="label">Gizlilik Politikası</span>
+    </a>
+    <a class="lang-btn" href="/jetfighter/en" hreflang="en">
+      <span class="flag" aria-hidden="true">EN</span>
+      <span class="name">English</span>
+      <span class="label">Privacy Policy</span>
+    </a>
+  </nav>
+</main>
+<footer>© 2026 Lumii</footer>
+</body>
+</html>

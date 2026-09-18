@@ -7,5 +7,8 @@ RUN chmod +x /docker-entrypoint.d/40-dash-auth.sh
 COPY index.html durum.html giris.html app-ads.txt /usr/share/nginx/html/
 COPY assets/ /usr/share/nginx/html/assets/
 COPY moneyinmypocket/ /usr/share/nginx/html/moneyinmypocket/
+COPY jetfighter/ /usr/share/nginx/html/jetfighter/
+COPY orbyt/ /usr/share/nginx/html/orbyt/
+COPY hilal/ /usr/share/nginx/html/hilal/
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://127.0.0.1/health >/dev/null || exit 1
