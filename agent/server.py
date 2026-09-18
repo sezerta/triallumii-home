@@ -20,7 +20,7 @@ PORT = int(os.environ.get("PORT", "8080"))
 
 # Uygulama → alan adı → konteyner adı eşleşmesi (Coolify uygulama kimliği önekleri; gizli değil)
 APPS = [
-    {"id": "home",     "name": "Ana sayfa + pano",   "domain": "triallumii.online",          "match": ["web-", "agent-"]},
+    {"id": "home",     "name": "Ana sayfa + pano",   "domain": "web.triallumii.online",      "match": ["web-", "agent-"]},
     {"id": "finradar", "name": "FinRadar",           "domain": "finradar.triallumii.online", "match": ["itnvtia0iunrrl5ook9psymc"]},
     {"id": "planix",   "name": "PLANIX",             "domain": "planix.triallumii.online",   "match": ["hunkmgzsuvnypxnofpyvcsfr"]},
     {"id": "ges",      "name": "GES Stüdyo",         "domain": "ges.triallumii.online",      "match": ["p5p8mc7dlye2u6edvorrooas"]},
